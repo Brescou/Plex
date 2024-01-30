@@ -29,52 +29,11 @@ services:
     volumes:
       - /home/brescou/Plex/database:/config
       - /home/brescou/Plex/transcode_tmp:/transcode
-      - /media/brescou/Plex:/data
-  qbittorrent:
-    image: linuxserver/qbittorrent
-    container_name: qbittorrent
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/New_York
-      - UMASK_SET=022
-      - WEBUI_PORT=8080
-    volumes:
-      - /home/brescou/qbittorrent/config:/config
-      - /media/brescou/Plex:/downloads
-    ports:
-      - 6881:6881
-      - 6881:6881/udp
-      - 8080:8080
-    restart: unless-stopped
-    network_mode: service:nordvpn
-  sonarr:
-    image: linuxserver/sonarr
-    container_name: sonarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/New_York
-    volumes:
-      - /home/brescou/sonarr/config:/config
-      - /media/brescou/Plex:/tv
-      - /media/brescou/Plex:/downloads
-    ports:
-      - 8989:8989
-    restart: unless-stopped
-    network_mode: service:nordvpn
-  radarr:
-    image: linuxserver/radarr
-    container_name: radarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/New_York
-    volumes:
-      - /home/brescou/radarr/config:/config
-      - /media/brescou/Plex:/movies
-      - /media/brescou/Plex:/downloads
-    ports:
-      - 7878:7878
-    restart: unless-stopped
-    network_mode: service:nordvpn
+      - /media/brescou/Plex1:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
