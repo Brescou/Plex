@@ -1,6 +1,6 @@
 version: "3"
 services:
-  nordvpn:
+  gluetun:
     image: qmcgaw/gluetun
     cap_add:
       - NET_ADMIN
@@ -10,6 +10,10 @@ services:
       - OPENVPN_USER=${NORDVPN_USERNAME}
       - OPENVPN_PASSWORD=${NORDVPN_PASSWORD}
       - SERVER_COUNTRIES=United States
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
   plex:
     image: plexinc/pms-docker
     container_name: plex
@@ -37,3 +41,16 @@ services:
           - driver: nvidia
             count: 1
             capabilities: [gpu]
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Australia/Sydney
+      - WEBUI_PORT=8080
+    volumes:
+      - /home/brescou/Plex/:/config
+      - /media/brescou/Plex1:/downloads
+    restart: unless-stopped
+    network_mode: service:gluetun
