@@ -84,7 +84,7 @@ services:
       - TZ=Australia/Sydney
     volumes:
       - /home/brescou/sonarr/config:/config
-      - /media/brescou/Plex/data/series:/tv
+      - /media/brescou/Plex/data/tv:/tv
       - /media/brescou/Plex/data/torrents:/downloads
     restart: unless-stopped
     network_mode: service:gluetun
