@@ -17,7 +17,7 @@ services:
       - 9117:9117     # Jackett
       - 7878:7878     # Radarr
       - 8989:8989     # Sonarr
-    restart: unless-stopped
+    restart: no
     networks:
       - gluetun_net
 
@@ -44,7 +44,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    restart: unless-stopped
+    restart: no
     networks:
       - gluetun_net
 
@@ -59,7 +59,7 @@ services:
     volumes:
       - /home/brescou/qbittorrent/config:/config
       - /media/brescou/Plex/data/torrents:/downloads
-    restart: unless-stopped
+    restart: no
     network_mode: service:gluetun
 
   jackett:
@@ -72,7 +72,7 @@ services:
     volumes:
       - /home/brescou/jackett/config:/config
       - /home/brescou/jackett/downloads:/downloads
-    restart: unless-stopped
+    restart: no
     network_mode: service:gluetun
 
   sonarr:
@@ -86,7 +86,7 @@ services:
       - /home/brescou/sonarr/config:/config
       - /media/brescou/Plex/data/tv:/tv
       - /media/brescou/Plex/data/torrents:/downloads
-    restart: unless-stopped
+    restart: no
     network_mode: service:gluetun
 
   radarr:
@@ -100,7 +100,7 @@ services:
       - /home/brescou/radarr/config:/config
       - /media/brescou/Plex/data/movies:/movies
       - /media/brescou/Plex/data/torrents:/downloads
-    restart: unless-stopped
+    restart: no
     network_mode: service:gluetun
 
 
