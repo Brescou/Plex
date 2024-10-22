@@ -1,5 +1,7 @@
 {
   "fileMatch": ["(^|/)(?:docker-)?compose[^/]*\\.ya?ml$"],
-  "extends": ["config:recommended"]
-
+  "enabledManagers": ["docker-compose"],
+  "docker-compose": {
+    "enabled": true
+  }
 }
