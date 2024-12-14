@@ -1,6 +1,10 @@
+networks:
+  gluetun_net:
+    driver: bridge
+
 services:
   gluetun:
-    image: qmcgaw/gluetun
+    image: qmcgaw/gluetun:latest
     container_name: gluetun
     cap_add:
       - NET_ADMIN
@@ -12,17 +16,14 @@ services:
       - OPENVPN_USER=${NORDVPN_USERNAME}
       - OPENVPN_PASSWORD=${NORDVPN_PASSWORD}
       - SERVER_COUNTRIES=United States
-    volumes:
-      - /home/brescou/gluetun/config:/gluetun
     ports:
-      - 8080:8080    # qBittorrent
-      - 9117:9117    # Jackett
-      - 7878:7878    # Radarr
-      - 8989:8989    # Sonarr
-      # - 8191:8191    # FlareSolverr
-      - 6881:6881
-      - 6881:6881/udp
-    restart: unless-stopped
+      - 8080:8080     # qBittorrent Web UI
+      - 6881:6881     # qBittorrent TCP
+      - 6881:6881/udp # qBittorrent UDP
+      - 9117:9117     # Jackett
+      - 7878:7878     # Radarr
+      - 8989:8989     # Sonarr
+    restart: no
     networks:
       - gluetun_net
 
@@ -36,7 +37,6 @@ services:
       - 32400:32400/tcp
       - 8324:8324/tcp
       - 32469:32469/tcp
-      # - 1900:1900/udp
       - 32410-32414:32410-32414/udp
     volumes:
       - /home/brescou/Plex/database:/config
@@ -49,10 +49,18 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    runtime: nvidia   
     restart: no
     networks:
       - gluetun_net
+
+  flaresolverr:
+    image: 21hsmw/flaresolverr:nodriver
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - DRIVER=nodriver
+    restart: unless-stopped
+    network_mode: service:gluetun
 
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -80,9 +88,6 @@ services:
       - /home/brescou/jackett/downloads:/downloads
     restart: no
     network_mode: service:gluetun
-    # networks:
-    #   custom_network:
-    #     ipv4_address: 192.168.100.2
 
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -111,26 +116,3 @@ services:
       - /media/brescou/Plex/data/torrents:/downloads
     restart: no
     network_mode: service:gluetun
-
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: flaresolverr
-    environment:
-      - LOG_LEVEL=info
-    restart: unless-stopped
-    # network_mode: service:gluetun
-    ports:
-      - 8191:8191
-    # networks:
-    #   custom_network:
-    #     ipv4_address: 192.168.100.2
-
-
-networks:
-  gluetun_net:
-    driver: bridge
-  custom_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.100.0/24
