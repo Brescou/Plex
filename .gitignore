@@ -2,3 +2,7 @@
 transcode_tmp/*
 .env
 qBittorrent/
+.DS_Store
+config/
+gluetun/
+nordvpn/

@@ -1,11 +1,44 @@
 networks:
-  gluetun_net:
+  vpn:
     driver: bridge
 
 services:
-  gluetun:
+  plex:
+    profiles: ["plex", "all"]
+    image: plexinc/pms-docker:latest
+    container_name: plex
+    restart: no
+    runtime: nvidia
+    environment:
+      - TZ=Europe/Paris
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - ADVERTISE_IP=http://192.168.2.41:32400/
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    volumes:
+      - /home/brescou/Plex/database:/config
+      - /home/brescou/Plex/transcode_tmp:/transcode
+      - /media/brescou/Plex/data:/data
+    network_mode: host
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+        reservations:
+          memory: 4G
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/bus/usb:/dev/bus/usb
+
+
+  nordvpn:
+    profiles: ["torrent", "all"]
+    container_name: nordvpn
     image: qmcgaw/gluetun:latest
-    container_name: gluetun
     cap_add:
       - NET_ADMIN
     devices:
@@ -15,104 +48,122 @@ services:
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${NORDVPN_USERNAME}
       - OPENVPN_PASSWORD=${NORDVPN_PASSWORD}
-      - SERVER_COUNTRIES=United States
+      - SERVER_COUNTRIES=Canada
+      - SERVER_CITIES=Toronto
     ports:
-      - 8080:8080     # qBittorrent Web UI
-      - 6881:6881     # qBittorrent TCP
-      - 6881:6881/udp # qBittorrent UDP
-      - 9117:9117     # Jackett
-      - 7878:7878     # Radarr
-      - 8989:8989     # Sonarr
-    restart: no
+      - 8989:8989 # Sonarr
+      - 7878:7878 # Radarr  
+      - 9117:9117 # Jackett
+      - 8080:8080 # qBittorrent
+      - 8191:8191 # Flaresolverr
+      - 8112:8112 # Deluge
+      - 6881:6881 # Deluge
+      - 6881:6881/udp # Deluge
+      - 9696:9696 # Prowlarr
+    restart: unless-stopped
     networks:
-      - gluetun_net
-
-  plex:
-    image: plexinc/pms-docker:latest
-    container_name: plex
-    hostname: plex
-    environment:
-      - TZ=America/New_York
-    ports:
-      - 32400:32400/tcp
-      - 8324:8324/tcp
-      - 32469:32469/tcp
-      - 32410-32414:32410-32414/udp
-    volumes:
-      - /home/brescou/Plex/database:/config
-      - /home/brescou/Plex/transcode_tmp:/transcode
-      - /media/brescou/Plex/data:/data
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: no
-    networks:
-      - gluetun_net
+      - vpn
 
   flaresolverr:
-    image: 21hsmw/flaresolverr:nodriver
+    profiles: ["torrent", "all"]
+    image: ghcr.io/flaresolverr/flaresolverr:latest
     container_name: flaresolverr
     environment:
       - LOG_LEVEL=info
       - DRIVER=nodriver
-    restart: unless-stopped
-    network_mode: service:gluetun
+    restart: no
+    depends_on:
+      - nordvpn
+    network_mode: service:nordvpn
 
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
+  deluge:
+    profiles: ["torrent", "all"]
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: deluge
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Australia/Sydney
-      - WEBUI_PORT=8080
+      - TZ=America/Toronto
+      - DELUGE_LOGLEVEL=info
     volumes:
-      - /home/brescou/qbittorrent/config:/config
+      - /home/brescou/deluge/config:/config
       - /media/brescou/Plex/data/torrents:/downloads
     restart: no
-    network_mode: service:gluetun
+    depends_on:
+      - nordvpn
+    network_mode: service:nordvpn
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8112"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  jackett:
-    image: lscr.io/linuxserver/jackett:latest
-    container_name: jackett
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Australia/Sydney
-    volumes:
-      - /home/brescou/jackett/config:/config
-      - /home/brescou/jackett/downloads:/downloads
-    restart: no
-    network_mode: service:gluetun
 
   sonarr:
+    profiles: ["torrent", "all"]
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Australia/Sydney
+      - TZ=America/Toronto
     volumes:
       - /home/brescou/sonarr/config:/config
       - /media/brescou/Plex/data/tv:/tv
       - /media/brescou/Plex/data/torrents:/downloads
     restart: no
-    network_mode: service:gluetun
+    depends_on:
+      - nordvpn
+    network_mode: service:nordvpn
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   radarr:
+    profiles: ["torrent", "all"]
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     environment:
       - PUID=1000
       - PGID=1000
-      - TZ=Australia/Sydney
+      - TZ=America/Toronto
     volumes:
       - /home/brescou/radarr/config:/config
       - /media/brescou/Plex/data/movies:/movies
       - /media/brescou/Plex/data/torrents:/downloads
     restart: no
-    network_mode: service:gluetun
+    depends_on:
+      - nordvpn
+    network_mode: service:nordvpn
+
+  prowlarr:
+    profiles: ["torrent", "all"]
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Toronto
+    volumes:
+      - /home/brescou/prowlarr/config:/config
+    restart: no
+    depends_on:
+      - nordvpn
+    network_mode: service:nordvpn
+
+  # heimdall:
+  #   container_name: heimdall
+  #   image: lscr.io/linuxserver/heimdall:latest
+  #   ports:
+  #     - 8082:80
+  #     - 8443:443
+  #   volumes:
+  #     - ./config/heimdall:/config
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Europe/Paris
+  #   restart: unless-stopped
+  #   networks:
+  #     - vpn
