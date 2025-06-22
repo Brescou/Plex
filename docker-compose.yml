@@ -54,7 +54,6 @@ services:
       - 8989:8989 # Sonarr
       - 7878:7878 # Radarr  
       - 9117:9117 # Jackett
-      - 8080:8080 # qBittorrent
       - 8191:8191 # Flaresolverr
       - 8112:8112 # Deluge
       - 6881:6881 # Deluge
@@ -152,18 +151,3 @@ services:
       - nordvpn
     network_mode: service:nordvpn
 
-  # heimdall:
-  #   container_name: heimdall
-  #   image: lscr.io/linuxserver/heimdall:latest
-  #   ports:
-  #     - 8082:80
-  #     - 8443:443
-  #   volumes:
-  #     - ./config/heimdall:/config
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/Paris
-  #   restart: unless-stopped
-  #   networks:
-  #     - vpn
